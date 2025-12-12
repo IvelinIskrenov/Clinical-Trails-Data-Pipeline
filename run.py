@@ -1,5 +1,5 @@
 import logging
-from ETL.extract import extract_data, extract_next_page, URL
+from ETL.extract import extract_page, extract_data, extract_next_page, URL
 
 def setup_logger():
     logger = logging.getLogger("ETL_Logger")
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     logger = setup_logger()
     logger.info("START TEST ...")
 
-    data = extract_data()
+    data = extract_page()
 
     print("\nExtracted items:")
     for d in data:
@@ -21,8 +21,8 @@ if __name__ == "__main__":
         print(" ")
 
     logger.info("Extract the next page started")
-    nextPage = extract_next_page(URL)
-    print(f"extracted next page: '{nextPage[0]}'")
+    next_page = extract_next_page(URL)
+    print(f"Еxtracted next page: === '{nextPage}' ===")
     logger.info("Extract the next page finished")
     
     logger.info("END TEST")
