@@ -7,8 +7,8 @@ logger = logging.getLogger('ETL_Logger')
 
 URL = "https://medicinraadet.dk/anbefalinger-og-vejledninger?page=1&order=updated%20desc&take=&currentpageid=1095&database=1095&secondary=1096&category=&archived=0&highlight=&q=&recommendation=1&recommendation=2&recommendation=8&period=0"
 SOLUTION_TITLE_CLASS = 'database-item-title' 
-NEXT_PAGE_CLASS = 'active item' # maybe search active-item then go to sibiling to get the next page ?
-SOLUTION_CLASS = 'database-item-category'
+NEXT_PAGE_CLASS = 'active item' 
+SOLUTION_CLASS = 'database-item-header' 
 
 def extract_page(url: str = URL) -> List[BeautifulSoup]:
     """Extracting the title"""
@@ -34,8 +34,10 @@ def extract_page(url: str = URL) -> List[BeautifulSoup]:
     print("___________________________")
     return rows_title
 
-# should give the next page, so we need add the numer of the current page (Chech if we get the next page or we are looping on the first 2 pages)
-def extract_next_page_href(url, page) -> str:
+def extract_solution_data():
+    return None
+
+def extract_next_page_href(url) -> str:
     """Returning the next page href"""
     
     logger.info(f" Start extracting the next page from: {url}")
@@ -65,11 +67,10 @@ def extract_next_page_href(url, page) -> str:
     
     return href
 
-# should test
 def extract_solution_hrefs(url) -> List[BeautifulSoup]:
-    """Get the all hrefs for all solutions in the current page"""
+    """Get the all links for all solutions in the current page"""
     
-    logger.info(f" Start extracting hrefs solutions from current page ...")
+    logger.info(f" Start extracting links solutions from current page ...")
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status() 
@@ -79,29 +80,28 @@ def extract_solution_hrefs(url) -> List[BeautifulSoup]:
 
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    solutions = soup.find("a", class_ = SOLUTION_CLASS)
+    solution_links = soup.find_all("div", class_ = SOLUTION_CLASS)
+    if not solution_links:
+        logger.info("No solution <a> tags found.")
+        return []
     
     hrefs =[]
-    
-    for solution in solutions:
-        if not solution:
-            logger.error("Active page <a> not found.")
-            return None
+    for solution in solution_links:
 
-        next_a = solution.find_next_sibling("a")
+        next_a = solution.find("a")
         if not next_a:
             logger.info("No href solution exists.")
             return None  
         href = next_a.get("href") 
         href = "https://medicinraadet.dk" + href
-        hrefs.insert(href) 
+        hrefs.append(href) 
     
-    logger.info(f"Solutions hrefs extracted !")
+    logger.info(f"Solutions hrefs extracted for the current page - COUNT: '{len(hrefs)}'!")
     
     return hrefs
 
-def extract_all_pages_hrefs(start_url: str) -> list:
-    """Walks through all pages starting from 'start_url', returns: list of page URLs."""
+def extract_all_pages_links(start_url: str) -> list:
+    """Walks through all pages starting from 'start_url', returns: list of pages URLs."""
     pages = []
     current_url = start_url
 
@@ -117,7 +117,27 @@ def extract_all_pages_hrefs(start_url: str) -> list:
 
         current_url = next_url
 
+    logger.info(f"Pages extracted - COUNT: '{len(pages)}'")
+    
     return pages
+
+def extract_all_solution_links(main_url) -> list[str]:
+    """
+    Collects and returns all solution links from every available page
+    For each page it extracts all solution-specific hyperlinks using extract_solution_hrefs() and extract_all_pages_hrefs()
+    Returns: list[str]: A list containing all unique solution URLs extracted from all pages.
+    """
+    all_solution_links = []
+    
+    pages = extract_all_pages_links(main_url)
+    
+    for page in pages:
+        current_page_links = extract_solution_hrefs(page)
+        all_solution_links.extend(current_page_links)
+    
+    logger.info(f"Extracted all solution links from the pages- COUNT: '{len(pages)}'")
+        
+    return all_solution_links    
     
 def extract_data() -> List[BeautifulSoup]:
     data = None
@@ -127,7 +147,6 @@ def extract_data() -> List[BeautifulSoup]:
             extract_title()
     
     """
-    pages = extract_all_pages_hrefs(URL)
     
     return data
     
