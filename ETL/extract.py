@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List
 import logging
+import pandas as pd
 
 logger = logging.getLogger('ETL_Logger') 
 
@@ -10,6 +11,7 @@ SOLUTION_TITLE_CLASS = 'database-item-title'
 NEXT_PAGE_CLASS = 'active item' 
 SOLUTION_CLASS = 'database-item-header' 
 
+# It will be deleted soon
 def extract_page(url: str = URL) -> List[BeautifulSoup]:
     """Extracting the title"""
     logger.info(f" Start extracting from: {url}")
@@ -34,7 +36,55 @@ def extract_page(url: str = URL) -> List[BeautifulSoup]:
     print("___________________________")
     return rows_title
 
-def extract_solution_data():
+def extract_solution_data(current_link):
+    """Extract the data for a single solution link"""
+    
+    logger.info(f" Start extracting the current solution link from: {current_link}")
+    try:
+        response = requests.get(current_link, timeout=15)
+        response.raise_for_status() 
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error in HTTP request: {e}")
+        return []
+    
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    #Find Active ingredient (generic name) & Trade name (brand name)
+    h1_tag = soup.find('h1', class_ = 'ui header')  
+    
+    all_font_tags = h1_tag.find_all('font')
+
+    if len(all_font_tags) > 1:
+        target_font_tag = all_font_tags[1]
+        text_content = target_font_tag.get_text(strip = True)
+    
+    
+    active_ingredient  = text_content.split('(')[0].strip()
+    trade_name = text_content.split('(')[1].split(')')[0].strip()
+    
+    # extract decision
+    div_tag = soup.find('div', class_ = 'product-process')
+    
+    if len(all_font_tags) > 1:
+        target_font_tag = all_font_tags[1]
+        text_content = target_font_tag.get_text(strip = True)
+        
+    decision = text_content
+    
+    #extracting ATC code
+    div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+    product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
+    ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
+    
+    #['active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
+    
+    # extract indication (Disease area)
+    # for extract (Specific disease) switch to [4]
+    div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+    product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
+    indication = product_detail_info.find_all('font')[1].get_text(strip = True)
+    
+    
     return None
 
 def extract_next_page_href(url) -> str:
@@ -140,13 +190,17 @@ def extract_all_solution_links(main_url) -> list[str]:
     return all_solution_links    
     
 def extract_data() -> List[BeautifulSoup]:
-    data = None
-    """
-    for page in pages:
-        for title in titles:
-            extract_title()
     
-    """
+    # indication col - (disease/condition the decision covers)
+    columns = ['decision', 'active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
+    data = pd.DataFrame(columns = columns) #empty
+    
+    
+    result_links = extract_all_pages_links(URL)
+    
+    for link in result_links:
+        current_link_data = extract_data(link)
+        # data -> + current_link_data
     
     return data
     
