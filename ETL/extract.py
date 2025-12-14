@@ -35,8 +35,12 @@ def extract_solution_data(current_link) -> pd.DataFrame:
     
     text_content = target_tag
     
-    active_ingredient  = text_content.split('(')[0].strip()
-    trade_name = text_content.split('(')[1].split(')')[0].strip()
+    if '(' in text_content:
+        active_ingredient  = text_content.split('(')[0].strip()
+        trade_name = text_content.split('(')[1].split(')')[0].strip()
+    else:
+        active_ingredient = text_content
+        trade_name = None
     
     # extract decision
     div_tag = soup.find('div', class_ = 'product-process') # product-process
@@ -59,7 +63,8 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         
         div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
         product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
-        ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
+        #ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
+        ATC_code = product_detail_info.get_text(strip = True)
 
     except Exception as e:
         print(f"Extract ATC error: {e.__class__.__name__}")
@@ -69,20 +74,22 @@ def extract_solution_data(current_link) -> pd.DataFrame:
     try:
         div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
         product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
-        indication = product_detail_info.find_all('font')[1].get_text(strip = True)
+        #indication = product_detail_info.find_all('font')[1].get_text(strip = True)
+        indication = product_detail_info.get_text(strip = True)
 
     except Exception as e:
-        print(f"Extract ATC error: {e.__class__.__name__}")
+        print(f"Extract indication error: {e.__class__.__name__}")
     
     # extract decision_data
     try:
         decision_date = None
         div_tag = soup.find('div', class_ = 'product-block product-inset product-content-limit')
-        product_detail_info = div_tag.find('p').find('i').find_all('font')[1].get_text(strip=True).split(' ')
-        decision_date = product_detail_info[2] + ' ' + product_detail_info[3] + ' ' + product_detail_info[4]
+        if div_tag:
+            product_detail_info = div_tag.find('p').find('i').get_text(strip=True).split(' ') #.find_all('font')[1]
+            decision_date = product_detail_info[2] + ' ' + product_detail_info[3] + ' ' + product_detail_info[4]
 
     except Exception as e:
-        print(f"Extract ATC error: {e.__class__.__name__}")
+        print(f"Extract decision date error: {e.__class__.__name__}")
 
     dataframe_row = pd.DataFrame(
         [[decision, active_ingredient, trade_name, ATC_code, decision_date, indication]],
@@ -201,10 +208,12 @@ def extract_data() -> pd.DataFrame:
     
     
     result_links = extract_all_solution_links(URL)
-    
+    result_counts = 1
     for link in result_links:
         current_link_data = extract_solution_data(link) # output is a dataframe_row
         data = pd.concat([data, current_link_data], ignore_index=True)
+        print(f"Reult link {result_counts} extracted !")
+        result_counts = result_counts + 1
     
     return data
     
