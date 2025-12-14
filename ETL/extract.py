@@ -11,32 +11,7 @@ SOLUTION_TITLE_CLASS = 'database-item-title'
 NEXT_PAGE_CLASS = 'active item' 
 SOLUTION_CLASS = 'database-item-header' 
 
-# It will be deleted soon
-def extract_page(url: str = URL) -> List[BeautifulSoup]:
-    """Extracting the title"""
-    logger.info(f" Start extracting from: {url}")
-    try:
-        response = requests.get(url, timeout=15)
-        response.raise_for_status() 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error in HTTP request: {e}")
-        return []
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    rows_title = soup.find_all('h3', class_=SOLUTION_TITLE_CLASS)
-    rows_page = soup.find_all()
-    
-    if not rows_title:
-        logger.error(f"There is no elements '{SOLUTION_TITLE_CLASS}'. Diffrent html structure.")
-
-    logger.info(f"Successfully extracted {len(rows_title)} records for class '{SOLUTION_TITLE_CLASS}'")
-    print("___________________________")
-    print(type(rows_title))
-    print("___________________________")
-    return rows_title
-
-def extract_solution_data(current_link):
+def extract_solution_data(current_link) -> pd.DataFrame:
     """Extract the data for a single solution link"""
     
     logger.info(f" Start extracting the current solution link from: {current_link}")
@@ -50,42 +25,71 @@ def extract_solution_data(current_link):
     soup = BeautifulSoup(response.content, 'html.parser')
 
     #Find Active ingredient (generic name) & Trade name (brand name)
-    h1_tag = soup.find('h1', class_ = 'ui header')  
+    h1_tag = soup.find('h1', class_ = 'ui header')
+      
+    if h1_tag and h1_tag.get_text(strip=True):
+        target_tag = h1_tag.get_text(strip=True)
+    else:
+        all_font_tags = h1_tag.find('font').find('font')
+        target_tag = all_font_tags[1]
     
-    all_font_tags = h1_tag.find_all('font')
-
-    if len(all_font_tags) > 1:
-        target_font_tag = all_font_tags[1]
-        text_content = target_font_tag.get_text(strip = True)
-    
+    text_content = target_tag
     
     active_ingredient  = text_content.split('(')[0].strip()
     trade_name = text_content.split('(')[1].split(')')[0].strip()
     
     # extract decision
-    div_tag = soup.find('div', class_ = 'product-process')
+    div_tag = soup.find('div', class_ = 'product-process') # product-process
     
-    if len(all_font_tags) > 1:
-        target_font_tag = all_font_tags[1]
-        text_content = target_font_tag.get_text(strip = True)
+    if div_tag and div_tag.get_text(strip=True):
+        target_tag = div_tag.get_text(strip=True)
+    else:
+        all_font_tags = div_tag.find('font').find('font')
+        target_tag = all_font_tags[1]
         
-    decision = text_content
+    decision = target_tag
+        
+    #if len(all_font_tags) > 1:
+    #    target_font_tag = all_font_tags[1]
+    #    text_content = target_font_tag.get_text(strip = True)
+    #decision = text_content
     
     #extracting ATC code
-    div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
-    product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
-    ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
-    
-    #['active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
+    try:
+        
+        div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+        product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
+        ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
+
+    except Exception as e:
+        print(f"Extract ATC error: {e.__class__.__name__}")
     
     # extract indication (Disease area)
     # for extract (Specific disease) switch to [4]
-    div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
-    product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
-    indication = product_detail_info.find_all('font')[1].get_text(strip = True)
+    try:
+        div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+        product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
+        indication = product_detail_info.find_all('font')[1].get_text(strip = True)
+
+    except Exception as e:
+        print(f"Extract ATC error: {e.__class__.__name__}")
     
+    # extract decision_data
+    try:
+        decision_date = None
+        div_tag = soup.find('div', class_ = 'product-block product-inset product-content-limit')
+        product_detail_info = div_tag.find('p').find('i').find_all('font')[1].get_text(strip=True).split(' ')
+        decision_date = product_detail_info[2] + ' ' + product_detail_info[3] + ' ' + product_detail_info[4]
+
+    except Exception as e:
+        print(f"Extract ATC error: {e.__class__.__name__}")
+
+    dataframe_row = pd.DataFrame(
+        [[decision, active_ingredient, trade_name, ATC_code, decision_date, indication]],
+        columns=["decision", "active_ingredient", "trade_name", "ATC_code", "decision_date", "indication"]
+    )
     
-    return None
+    return dataframe_row
 
 def extract_next_page_href(url) -> str:
     """Returning the next page href"""
@@ -189,18 +193,18 @@ def extract_all_solution_links(main_url) -> list[str]:
         
     return all_solution_links    
     
-def extract_data() -> List[BeautifulSoup]:
+def extract_data() -> pd.DataFrame:
     
     # indication col - (disease/condition the decision covers)
     columns = ['decision', 'active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
     data = pd.DataFrame(columns = columns) #empty
     
     
-    result_links = extract_all_pages_links(URL)
+    result_links = extract_all_solution_links(URL)
     
     for link in result_links:
-        current_link_data = extract_data(link)
-        # data -> + current_link_data
+        current_link_data = extract_solution_data(link) # output is a dataframe_row
+        data = pd.concat([data, current_link_data], ignore_index=True)
     
     return data
     

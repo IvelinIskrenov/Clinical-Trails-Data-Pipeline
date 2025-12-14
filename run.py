@@ -1,5 +1,5 @@
 import logging
-from ETL.extract import extract_all_solution_links, URL
+from ETL.extract import extract_data, URL
 
 def setup_logger():
     logger = logging.getLogger("ETL_Logger")
@@ -13,11 +13,9 @@ if __name__ == "__main__":
     logger = setup_logger()
     logger.info("START TEST ...")
 
-    data = extract_all_solution_links(URL)
+    data = extract_data()
 
-    #print("\nExtracted items:")
-    #for d in data:
-    #    print(d)
-    #    print(" ")
+    print("\nExtracted items:")
+    print(data.head(30))
     
     logger.info("END TEST")
