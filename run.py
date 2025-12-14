@@ -1,8 +1,8 @@
 import logging
-from ETL.extract import extract_data, URL
+from ETL import extract_data, transform, load_to_polars, URL
 
 def setup_logger():
-    logger = logging.getLogger("ETL_Logger")
+    logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
@@ -13,9 +13,12 @@ if __name__ == "__main__":
     logger = setup_logger()
     logger.info("START TEST ...")
 
+    #ETL
     data = extract_data()
+    transformed_data = transform(data)
+    data_polars = load_to_polars(data)
 
-    print("\nExtracted items:")
-    print(data.head(30))
+    #print("\nExtracted items:")
+    #print(data.head(100))
     
     logger.info("END TEST")

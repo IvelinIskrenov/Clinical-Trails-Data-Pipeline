@@ -4,7 +4,7 @@ from typing import List
 import logging
 import pandas as pd
 
-logger = logging.getLogger('ETL_Logger') 
+logger = logging.getLogger(__name__)
 
 URL = "https://medicinraadet.dk/anbefalinger-og-vejledninger?page=1&order=updated%20desc&take=&currentpageid=1095&database=1095&secondary=1096&category=&archived=0&highlight=&q=&recommendation=1&recommendation=2&recommendation=8&period=0"
 SOLUTION_TITLE_CLASS = 'database-item-title' 
@@ -22,7 +22,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         logger.error(f"Error in HTTP request: {e}")
         return []
     
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, 'html.parser') #'lxml'
 
     #Find Active ingredient (generic name) & Trade name (brand name)
     h1_tag = soup.find('h1', class_ = 'ui header')
@@ -43,7 +43,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         trade_name = None
     
     # extract decision
-    div_tag = soup.find('div', class_ = 'product-process') # product-process
+    div_tag = soup.find('div', class_ = 'product-process')
     
     if div_tag and div_tag.get_text(strip=True):
         target_tag = div_tag.get_text(strip=True)
@@ -52,18 +52,12 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         target_tag = all_font_tags[1]
         
     decision = target_tag
-        
-    #if len(all_font_tags) > 1:
-    #    target_font_tag = all_font_tags[1]
-    #    text_content = target_font_tag.get_text(strip = True)
-    #decision = text_content
     
     #extracting ATC code
     try:
         
         div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
         product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
-        #ATC_code = product_detail_info.find_all('font')[1].get_text(strip = True)
         ATC_code = product_detail_info.get_text(strip = True)
 
     except Exception as e:
@@ -72,9 +66,8 @@ def extract_solution_data(current_link) -> pd.DataFrame:
     # extract indication (Disease area)
     # for extract (Specific disease) switch to [4]
     try:
-        div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+        #div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
         product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
-        #indication = product_detail_info.find_all('font')[1].get_text(strip = True)
         indication = product_detail_info.get_text(strip = True)
 
     except Exception as e:
@@ -85,7 +78,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         decision_date = None
         div_tag = soup.find('div', class_ = 'product-block product-inset product-content-limit')
         if div_tag:
-            product_detail_info = div_tag.find('p').find('i').get_text(strip=True).split(' ') #.find_all('font')[1]
+            product_detail_info = div_tag.find('p').find('i').get_text(strip=True).split(' ') 
             decision_date = product_detail_info[2] + ' ' + product_detail_info[3] + ' ' + product_detail_info[4]
 
     except Exception as e:
