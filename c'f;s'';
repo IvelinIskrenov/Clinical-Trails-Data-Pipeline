@@ -1,0 +1,71 @@
+[33mcommit adfe87eb41d0fc6f5f6bbbc5ad93ebaac8b1f682[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Mon Dec 15 15:32:39 2025 +0200
+
+    Update README.md, add test_extract.py, test_load.py files (unit tests)
+
+[33mcommit ef0e55f0fce911e71a578012774a2a11c9137ee7[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Mon Dec 15 10:52:21 2025 +0200
+
+    ETL -> extract.py add extract_data_parallel() for more speed processing
+
+[33mcommit 635f29f815057fdedd134f13e2bf89e8796f6858[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Mon Dec 15 00:57:57 2025 +0200
+
+    transofrm.py, load.py files created with the requited functions, ETL pipeline in run.py created and work correctly
+
+[33mcommit fcdfffbda9d760b517b27be37d14f70ff7ce1697[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Sun Dec 14 21:55:31 2025 +0200
+
+    extract.py and the main function extract_data() is done and works fine
+
+[33mcommit ef51174908738c414c1d0625877a87a4b510fb39[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Sun Dec 14 12:54:12 2025 +0200
+
+    ETL-> extract.py added extract_data() function, extract_solution_data() should be fixed
+
+[33mcommit 3bd65c6b7a0fca073cfec14c924daf40379d7b82[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Sat Dec 13 18:02:39 2025 +0200
+
+    ETL -> extract.py added extract_solution_data(), need to form the row and extract the decision_data to finished it
+
+[33mcommit 4f35cf247c90700ddded1476f03af4b0b10a4f4a[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Sat Dec 13 00:47:41 2025 +0200
+
+    Rename the methods (href/s -> link/s), ETL -> extract.py added extract_all_solution_links() method
+
+[33mcommit a75f9a48b59284088f15753090add97bfa3943a9[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Fri Dec 12 15:27:30 2025 +0200
+
+    ETL -> extract.py added the following methods: extract_solution_hrefs(url), extract_all_pages_hrefs(start_url)
+
+[33mcommit a58f1a98a3752e3887b45060a222ad9ae5f67629[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Fri Dec 12 08:59:52 2025 +0200
+
+    ETL->extract.py  + extract_next_page() method
+
+[33mcommit 0c9e1db2b3a76e7a66c46972ea6f817d129857d1[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Fri Dec 12 08:45:46 2025 +0200
+
+    In ETL-> Extract.py added extract the info content hrefs
+
+[33mcommit 0164ea9b021a0cf392485f545f3d1acb2ca88540[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Fri Dec 12 00:35:53 2025 +0200
+
+    Structure of the project added
+
+[33mcommit ceaf8a06cb4500897b8b068425d3fdecd230fdb9[m
+Author: IvelinIskrenov <ivelin_iskrenov@abv.bg>
+Date:   Thu Dec 11 15:54:49 2025 +0200
+
+    Initail commit
