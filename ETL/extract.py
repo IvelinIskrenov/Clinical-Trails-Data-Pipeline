@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 URL = "https://medicinraadet.dk/anbefalinger-og-vejledninger?page=1&order=updated%20desc&take=&currentpageid=1095&database=1095&secondary=1096&category=&archived=0&highlight=&q=&recommendation=1&recommendation=2&recommendation=8&period=0"
 SOLUTION_TITLE_CLASS = 'database-item-title' 
 NEXT_PAGE_CLASS = 'active item' 
-SOLUTION_CLASS = 'database-item-header' 
+SOLUTION_CLASS = 'database-item-header'
+BASE_URL = "https://medicinraadet.dk" 
 
 MAX_THREADS = 25 # for parallel processing
 
@@ -47,6 +48,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
         trade_name = None
     
     # extract decision
+    decision = None
     div_tag = soup.find('div', class_ = 'product-process')
     
     if div_tag and div_tag.get_text(strip=True):
@@ -59,7 +61,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
     
     #extracting ATC code
     try:
-        
+        ATC_code = None
         div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
         product_detail_info = div_tag.find_all('div', 'product-detail')[1].find('div', 'product-detail-info')
         ATC_code = product_detail_info.get_text(strip = True)
@@ -71,6 +73,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
     # for extract (Specific disease) switch to [4]
     try:
         #div_tag = soup.find('div', class_ = 'product-details product-content-limit-lg')
+        indication = None
         product_detail_info = div_tag.find_all('div', 'product-detail')[2].find('div', 'product-detail-info') # switch to [4]
         indication = product_detail_info.get_text(strip = True)
 
@@ -121,7 +124,7 @@ def extract_next_page_href(url) -> str:
     href = next_a.get("href")
     logger.info(f"Next page href: {href}")
     
-    href = "https://medicinraadet.dk" + href
+    href = BASE_URL + href
     
     return href
 
@@ -151,7 +154,7 @@ def extract_solution_hrefs(url) -> List[BeautifulSoup]:
             logger.info("No href solution exists.")
             return None  
         href = next_a.get("href") 
-        href = "https://medicinraadet.dk" + href
+        href = BASE_URL + href
         hrefs.append(href) 
     
     logger.info(f"Solutions hrefs extracted for the current page - COUNT: '{len(hrefs)}'!")
