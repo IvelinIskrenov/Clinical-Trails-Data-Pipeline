@@ -1,8 +1,10 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from typing import List
 import logging
 import pandas as pd
+import concurrent.futures
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +13,20 @@ SOLUTION_TITLE_CLASS = 'database-item-title'
 NEXT_PAGE_CLASS = 'active item' 
 SOLUTION_CLASS = 'database-item-header' 
 
+MAX_THREADS = 25 # for parallel processing
+
 def extract_solution_data(current_link) -> pd.DataFrame:
     """Extract the data for a single solution link"""
     
     logger.info(f" Start extracting the current solution link from: {current_link}")
     try:
-        response = requests.get(current_link, timeout=15)
+        response = requests.get(current_link, timeout = 10)
         response.raise_for_status() 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error in HTTP request: {e}")
         return []
     
-    soup = BeautifulSoup(response.content, 'html.parser') #'lxml'
+    soup = BeautifulSoup(response.content, 'html.parser') 
 
     #Find Active ingredient (generic name) & Trade name (brand name)
     h1_tag = soup.find('h1', class_ = 'ui header')
@@ -86,7 +90,7 @@ def extract_solution_data(current_link) -> pd.DataFrame:
 
     dataframe_row = pd.DataFrame(
         [[decision, active_ingredient, trade_name, ATC_code, decision_date, indication]],
-        columns=["decision", "active_ingredient", "trade_name", "ATC_code", "decision_date", "indication"]
+        columns = ["decision", "active_ingredient", "trade_name", "ATC_code", "decision_date", "indication"]
     )
     
     return dataframe_row
@@ -96,7 +100,7 @@ def extract_next_page_href(url) -> str:
     
     logger.info(f" Start extracting the next page from: {url}")
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, timeout = 10)
         response.raise_for_status() 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error in HTTP request: {e}")
@@ -126,7 +130,7 @@ def extract_solution_hrefs(url) -> List[BeautifulSoup]:
     
     logger.info(f" Start extracting links solutions from current page ...")
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, timeout = 10)
         response.raise_for_status() 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error in HTTP request: {e}")
@@ -139,7 +143,7 @@ def extract_solution_hrefs(url) -> List[BeautifulSoup]:
         logger.info("No solution <a> tags found.")
         return []
     
-    hrefs =[]
+    hrefs = []
     for solution in solution_links:
 
         next_a = solution.find("a")
@@ -194,7 +198,7 @@ def extract_all_solution_links(main_url) -> list[str]:
     return all_solution_links    
     
 def extract_data() -> pd.DataFrame:
-    
+    """Extracts medical council decision data. The result is a DataFrame"""
     # indication col - (disease/condition the decision covers)
     columns = ['decision', 'active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
     data = pd.DataFrame(columns = columns) #empty
@@ -204,9 +208,43 @@ def extract_data() -> pd.DataFrame:
     result_counts = 1
     for link in result_links:
         current_link_data = extract_solution_data(link) # output is a dataframe_row
-        data = pd.concat([data, current_link_data], ignore_index=True)
+        data = pd.concat([data, current_link_data], ignore_index = True)
         print(f"Reult link {result_counts} extracted !")
         result_counts = result_counts + 1
     
+    return data
+
+def extract_data_parallel() -> pd.DataFrame:
+    """Extracts medical council decision data using multi-threading for concurrency. The result is a DataFrame"""
+    
+    # indication col - (disease/condition the decision covers)
+    columns = ['decision', 'active_ingredient', 'trade_name', 'ATC_code', 'decision_date', 'indication']
+
+    data_rows = []
+    
+    result_links = extract_all_solution_links(URL)
+    
+    print(f"Processing {len(result_links)} URLs ! Startig extraction using {MAX_THREADS} threads ...")
+    
+    start_time = time.time()
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers = MAX_THREADS) as executor:
+        
+        results_iter = executor.map(extract_solution_data, result_links)
+        
+        #executes when threads are done
+        for result_row in results_iter:
+            if not result_row.empty:
+                data_rows.append(result_row)
+        
+    end_time = time.time()
+    
+    print(f"\nEnd extraction {end_time - start_time:.2f} seconds")
+
+    if data_rows:
+        data = pd.concat(data_rows, ignore_index=True)
+    else:
+        data = pd.DataFrame(columns = columns)
+        
     return data
     

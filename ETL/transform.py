@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def transform(df: pd.DataFrame) -> pd.DataFrame:
+    """Filters the DF to include only rows with allowed decision statuses ."""
     
     initial_rows = len(df)
     logger.info(f"Starting transformation. Initial row count: {initial_rows}")
